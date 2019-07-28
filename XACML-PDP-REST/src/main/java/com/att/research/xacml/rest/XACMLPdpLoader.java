@@ -5,17 +5,9 @@
  */
 package com.att.research.xacml.rest;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URL;
-import java.net.URLConnection;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.*;
+import java.net.*;
+import java.nio.file.*;
 import java.util.Properties;
 import java.util.Set;
 
@@ -28,13 +20,8 @@ import com.att.research.xacml.api.pap.PDPStatus;
 import com.att.research.xacml.api.pap.PDPStatus.Status;
 import com.att.research.xacml.api.pdp.PDPEngine;
 import com.att.research.xacml.api.pdp.PDPEngineFactory;
-import com.att.research.xacml.api.pip.PIPEngine;
-import com.att.research.xacml.api.pip.PIPException;
-import com.att.research.xacml.api.pip.PIPFinder;
-import com.att.research.xacml.api.pip.PIPFinderFactory;
-import com.att.research.xacml.std.pap.StdPDPPIPConfig;
-import com.att.research.xacml.std.pap.StdPDPPolicy;
-import com.att.research.xacml.std.pap.StdPDPStatus;
+import com.att.research.xacml.api.pip.*;
+import com.att.research.xacml.std.pap.*;
 import com.att.research.xacml.util.FactoryException;
 import com.att.research.xacml.util.XACMLProperties;
 import com.att.research.xacmlatt.pdp.policy.PolicyDef;
@@ -96,6 +83,7 @@ public class XACMLPdpLoader {
 		//
 		// Load our PIP configuration
 		//
+		/*
 		try {
 			//
 			// Were we given some properties to use?
@@ -122,6 +110,8 @@ public class XACMLPdpLoader {
 			status.addLoadError(error);
 			status.setStatus(PDPStatus.Status.LOAD_ERRORS);
 		}
+		*/
+		
 		//
 		// Were they validated?
 		//

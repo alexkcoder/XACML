@@ -5,22 +5,19 @@
  */
 package com.att.research.xacml.util;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.Properties;
-import java.util.Set;
-import java.util.StringJoiner;
+import java.nio.file.Paths;
+import java.util.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Splitter;
+import com.google.common.io.Files;
 
 /**
  * XACMLProperties is a wrapper around a <code>Properties</code> object loaded from a standard location for XACML properties.
@@ -29,7 +26,7 @@ import com.google.common.base.Splitter;
  * @version $Revision: 1.2 $
  */
 public class XACMLProperties {
-	private static final Logger logger	= LoggerFactory.getLogger(XACMLProperties.class);
+    private static final Logger logger      = LoggerFactory.getLogger(XACMLProperties.class);
 	
 	private static final String LOG_MSG                 = "Missing property: ";
     private static final String FILE_APPEND = ".file";
@@ -46,6 +43,10 @@ public class XACMLProperties {
 	
 	public static final String	PROP_ROOTPOLICIES		= "xacml.rootPolicies";
 	public static final String	PROP_REFERENCEDPOLICIES	= "xacml.referencedPolicies";
+	
+	// My new parameters
+	public static final String  POLICY_PARAM = "policy";
+    public static final String PDP_CONFIG = "xacml.rest.pdp.config";
 	
 	public static final String	PROP_PDP_BEHAVIOR		= "xacml.pdp.behavior";
 	public static final String	PROP_PIP_ENGINES		= "xacml.pip.engines";
@@ -121,7 +122,7 @@ public class XACMLProperties {
 	public static String getProperty(String propertyName) {
 		return getProperty(propertyName, null);
 	}
-	
+		
 	/**
 	 * Get the policy-related properties from the given set of properties.
 	 * These may or may not include ".url" entries for each policy.
@@ -133,14 +134,19 @@ public class XACMLProperties {
 	 * @return Properties object
 	 * @throws Exception
 	 */
-	public static Properties getPolicyProperties(Properties current, boolean checkURLs) throws XacmlPropertyException {
+	public static Properties getPolicyProperties(Properties current, boolean checkURLs) throws Exception {
+	    final String POLICY_NAME = "nf.playbackPolicy.xml";
 		Properties props = new Properties();
 		String[] lists = new String[2];
-		lists[0] = current.getProperty(XACMLProperties.PROP_ROOTPOLICIES);
-		lists[1] = current.getProperty(XACMLProperties.PROP_REFERENCEDPOLICIES);
+		//lists[0] = current.getProperty(XACMLProperties.PROP_ROOTPOLICIES);
+		lists[0] = POLICY_NAME ;
+		//lists[1] = current.getProperty(XACMLProperties.PROP_REFERENCEDPOLICIES);
+		lists[1] = "";
 		// require that PROP_ROOTPOLICIES exist, even when it is empty
 		if (lists[0] != null) {
 			props.setProperty(XACMLProperties.PROP_ROOTPOLICIES, lists[0]);
+			File dest = new File(Paths.get(XACMLProperties.getProperty(XACMLProperties.PDP_CONFIG), POLICY_NAME).toString());
+			Files.write(current.getProperty(XACMLProperties.POLICY_PARAM), dest, StandardCharsets.UTF_8);
 		} else {
 			logger.error(LOG_MSG, XACMLProperties.PROP_ROOTPOLICIES);
 			throw new XacmlPropertyException(LOG_MSG + XACMLProperties.PROP_ROOTPOLICIES);

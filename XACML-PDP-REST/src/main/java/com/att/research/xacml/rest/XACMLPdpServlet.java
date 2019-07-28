@@ -5,33 +5,25 @@
  */
 package com.att.research.xacml.rest;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.file.Files;
+import java.util.Collection;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import javax.servlet.Servlet;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
+import javax.servlet.*;
 import javax.servlet.annotation.WebInitParam;
 import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.*;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.entity.ContentType;
+import org.json.JSONObject;
 
-import com.att.research.xacml.api.Request;
-import com.att.research.xacml.api.Response;
+import com.att.research.xacml.api.*;
 import com.att.research.xacml.api.pap.PDPStatus.Status;
 import com.att.research.xacml.api.pdp.PDPEngine;
 import com.att.research.xacml.api.pdp.PDPException;
@@ -254,29 +246,32 @@ public class XACMLPdpServlet extends HttpServlet implements Runnable {
 		if (logger.isDebugEnabled()) {
 			XACMLRest.dumpRequest(request);
 		}
+		
+		this.doPutConfig("policies", request, response);
+		
 		//
 		// What is being PUT?
 		//
-		String cache = request.getParameter("cache");
-		//
-		// Should be a list of policy and pip configurations in Java properties format
-		//
-		if (cache != null && request.getContentType().equals("text/x-java-properties")) {
-			if (request.getContentLength() > Integer.parseInt(XACMLProperties.getProperty("MAX_CONTENT_LENGTH", "32767"))) {
-				String message = "Content-Length larger than server will accept.";
-				logger.info(message);
-				response.sendError(HttpServletResponse.SC_BAD_REQUEST, message);
-				return;
-			}
-			this.doPutConfig(cache, request, response);
-		} else {
-			String message = "Invalid cache: '" + cache + "' or content-type: '" + request.getContentType() + "'";
-			logger.error(message);
-			response.sendError(HttpServletResponse.SC_BAD_REQUEST, message);
-			return;
-		}
+//		String cache = request.getParameter("cache");
+//		//
+//		// Should be a list of policy and pip configurations in Java properties format
+//		//
+//		if (cache != null && request.getContentType().equals("text/x-java-properties")) {
+//			if (request.getContentLength() > Integer.parseInt(XACMLProperties.getProperty("MAX_CONTENT_LENGTH", "32767"))) {
+//				String message = "Content-Length larger than server will accept.";
+//				logger.info(message);
+//				response.sendError(HttpServletResponse.SC_BAD_REQUEST, message);
+//				return;
+//			}
+//			this.doPutConfig(cache, request, response);
+//		} else {8
+//			String message = "Invalid cache: '" + cache + "' or content-type: '" + request.getContentType() + "'";
+//			logger.error(message);
+//			response.sendError(HttpServletResponse.SC_BAD_REQUEST, message);
+//			return;
+//		}
 	}
-	
+		
 	protected void doPutConfig(String config, HttpServletRequest request, HttpServletResponse response)  throws ServletException, IOException {
 		try {
 			// prevent multiple configuration changes from stacking up
@@ -289,7 +284,8 @@ public class XACMLPdpServlet extends HttpServlet implements Runnable {
 			// Read the properties data into an object.
 			//
 			Properties newProperties = new Properties();
-			newProperties.load(request.getInputStream());
+            newProperties.setProperty(XACMLProperties.POLICY_PARAM,  IOUtils.toString(request.getInputStream()));
+			//newProperties.load(request.getInputStream());
 			// should have something in the request
 			if (newProperties.size() == 0) {
 				logger.error("No properties in PUT");
@@ -301,7 +297,8 @@ public class XACMLPdpServlet extends HttpServlet implements Runnable {
 			// put on the queue (if there is room).
 			//
 			if (config.equals("policies")) {
-				newProperties = XACMLProperties.getPolicyProperties(newProperties, true);
+				//newProperties = XACMLProperties.getPolicyProperties(newProperties, true);
+			    newProperties = XACMLProperties.getPolicyProperties(newProperties, false);
 				if (newProperties.size() == 0) {
 					logger.error("No policy properties in PUT");
 					response.sendError(HttpServletResponse.SC_BAD_REQUEST, "PUT with cache=policies must contain at least one policy property");
@@ -344,6 +341,10 @@ public class XACMLPdpServlet extends HttpServlet implements Runnable {
 			return;
 		}
 	}
+	
+	int permitCount = 0;
+	int denyCount = 0;
+	int otherCount = 0;
 	
 	/**
 	 * Parameters: type=hb|config|Status
@@ -399,6 +400,16 @@ public class XACMLPdpServlet extends HttpServlet implements Runnable {
 			}
             response.setStatus(HttpServletResponse.SC_OK);
             
+		} if ("stats".equals(type)) {
+	        OutputStream out = response.getOutputStream();
+	        JSONObject obj = new JSONObject();
+	        obj.put("permitCount", permitCount);
+	        obj.put("denyCount", denyCount);
+	        obj.put("otherCount", otherCount);
+	        OutputStreamWriter osw = new OutputStreamWriter(out);
+	        osw.write(obj.toString());
+	        osw.flush();
+		    response.setStatus(HttpServletResponse.SC_OK);
 		} else {
 			response.sendError(HttpServletResponse.SC_BAD_REQUEST, "type not 'config' or 'hb'");
 		}
@@ -575,6 +586,19 @@ synchronized(pdpEngineLock) {
 				requestLogger.info(lTimeStart + "=" + "{}");
 				throw new Exception("Failed to get response from PDP engine.");
 			}
+			
+			Collection<Result> results = pdpResponse.getResults();
+			for (Result res : results) {
+			    Decision d = res.getDecision();
+			    if (d.equals(Decision.PERMIT)) {
+			        permitCount++;
+			    } else if (d.equals(Decision.DENY)) {
+			        denyCount++;
+			    } else {
+			        otherCount++;
+			    }
+			}
+			
 			//
 			// Set our content-type
 			//

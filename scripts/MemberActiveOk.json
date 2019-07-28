@@ -1,0 +1,33 @@
+{
+  "Request": {
+    "ReturnPolicyIdList" : "false",
+    "CombinedDecision" : "false",
+    "Category" : [
+      {
+        "CategoryId" : "urn:oasis:names:tc:xacml:1.0:subject-category:access-subject",
+        "Attribute": [
+          {
+            "AttributeId" : "urn:oasis:names:tc:xacml:1.0:subject:subject-id",
+            "Value" : "Julius Hibbert"
+          },
+          {
+            "AttributeId" : "urn:oasis:names:tc:xacml:1.0:subject:subject-active-state",
+            "Value" : "true",
+            "DataType": "http://www.w3.org/2001/XMLSchema#boolean"   
+          }
+        ]
+      }, 
+      {
+        "CategoryId" : "urn:oasis:names:tc:xacml:3.0:attribute-category:resource",
+        "Attribute": [
+          {
+            "AttributeId" : "urn:oasis:names:tc:xacml:1.0:resource:resource-id",
+            "Value": "device1",
+            "DataType": "http://www.w3.org/2001/XMLSchema#string"              
+          }
+        ]
+      }
+    ]
+  }
+}
+
